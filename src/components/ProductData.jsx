@@ -1,164 +1,202 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+
 
 const ProductData = () => {
-  const [item, setData] = useState([]);
-  const [page,setpage]=useState(1)
+  const [product, setproduct] = useState([]);
 
-  let currentpage=12;
+  const [search, setsearch] = useState("");
+  const [category, setcategory] = useState("");
+  const [categorylist, setcategorylist] = useState([]);
+  const [page, setpage] = useState(1);
+  const [totalproductB, setbtn] = useState(0);
 
-  let indexend=page*currentpage;
-  let indexstart=indexend-currentpage
-  let pagenation=item.slice(indexstart,indexend)
-  
+  const perPage = 10;
+
+  // Get category list once
   useEffect(() => {
-    async function getData() {
-      let { data } = await axios.get("https://dummyjson.com/products/?limit=200");
-      console.log(data.products);
-      setData(data.products);
-      
+    async function categoryAPI() {
+      let { data } = await axios.get(
+        "https://dummyjson.com/products/category-list"
+      );
+      console.log(data);
+      setcategorylist(data);
     }
-    getData();
+    categoryAPI();
   }, []);
 
+  // Get products based on search / category / page
+  useEffect(() => {
+    let api;
+
+    if (category) {
+      api = `https://dummyjson.com/products/category/${category}`;
+    } else if (search) {
+      api = `https://dummyjson.com/products/search?q=${search}`;
+    } else {
+      api = `https://dummyjson.com/products?limit=100`;
+    }
+
+    async function getAPI() {
+      let { data } = await axios.get(api);
+
+      let allProducts = data.products || [];
+      setbtn(allProducts.length); // total products count
+
+      let pagination = allProducts.slice(
+        (page - 1) * perPage,
+        page * perPage
+      );
+      setproduct(pagination);
+    }
+
+    getAPI();
+  }, [page, category, search]);
+
+  let viewBtns = Math.ceil(totalproductB / perPage);
+
   return (
-    <div className="container mt-4">
-      <div className="row">
-  {pagenation.map((pr) => (
-    <div key={pr.id} className="col-md-4 mb-3">
-      <div className="card shadow-lg">
-        <img
-          src={pr.thumbnail}
-          alt={pr.title}
-          className="card-img-top"
-          style={{ height: "250px", objectFit: "contain", backgroundColor: "#fff" }}
-        />
-        <div className="card-body">
-          <h5 className="card-title">{pr.title}</h5>
-          <p className="card-text text-muted">Price: ${pr.price}</p>
-          <button className="btn btn-primary w-100">{pr.description.length > 100 ? pr.description.slice(0,100) +"...😎":pr.description}</button>
+    <>
+      <div className="container my-4">
+        {/* Header */}
+        <div className="text-center mb-4">
+          <h2 className="fw-bold">🛍️ Product Store</h2>
+          <p className="text-muted">
+            Browse products by category, search, and pagination.
+          </p>
         </div>
-      </div>
-    </div>
-  ))}
-</div>
 
-      
+        {/* Search + Category */}
+        <div className="row mb-4 g-3 align-items-center">
+          <div className="col-md-6">
+            <input
+              placeholder="Search products..."
+              className="border border-2 rounded form-control"
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setsearch(e.target.value);
+                setcategory("");
+                setpage(1); // reset to first page
+              }}
+            />
+          </div>
+          <div className="col-md-6">
+            <select
+              className="p-2 text-bold border rounded form-select"
+              value={category}
+              onChange={(e) => {
+                setcategory(e.target.value);
+                setsearch("");
+                setpage(1); // reset to first page
+              }}
+            >
+              <option value="">ALL Category</option>
+              {categorylist.map((value, i) => (
+                <option key={i} value={value} className="text-bold text-2xl">
+                  {value}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-      <div className="d-flex mx-10 justify-content-center">
-        {
-          [1,2,3,4,5,6,7,8,9,10].map(btn=>
-            <div className="btn bg-primary text-white p-2 m-3" onClick={()=>setpage(btn)}>{btn}</div>
-          )
-        }
-      </div>
+        {/* Product Cards */}
+        <div className="row g-3">
+      {product.map((pr, index) => (
+        <motion.div
+          key={pr.id}
+          className="col-md-4 col-lg-3"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: index * 0.08 }}
+          whileHover={{ scale: 1.02 }}
+        >
+          <Link
+            to={`/product/${pr.id}`}
+            className="text-decoration-none text-dark"
+          >
+            <div className="card shadow-sm h-100 hover-card">
+              <img
+                src={pr.thumbnail}
+                alt={pr.title}
+                className="card-img-top"
+                style={{
+                  height: "220px",
+                  objectFit: "contain",
+                  backgroundColor: "#fff",
+                }}
+              />
+              <div className="card-body d-flex flex-column">
+                <h6 className="card-title fw-bold mb-1">
+                  {pr.title.length > 40
+                    ? pr.title.slice(0, 40) + "..."
+                    : pr.title}
+                </h6>
+                <p className="mb-1 text-muted small">
+                  Brand: <strong>{pr.brand}</strong>
+                </p>
+
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="fw-bold text-success">₹{pr.price}</span>
+                  <span className="badge bg-warning text-dark">
+                    ⭐ {pr.rating}
+                  </span>
+                </div>
+
+                <p className="small text-muted mb-2">
+                  {pr.description.length > 70
+                    ? pr.description.slice(0, 70) + "... 😎"
+                    : pr.description}
+                </p>
+
+                <span className="badge bg-light text-dark border mt-auto">
+                  {pr.category}
+                </span>
+              </div>
+
+              <div className="card-footer bg-white border-0">
+                <button className="btn btn-outline-primary w-100">
+                  View Details
+                </button>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+      ))}
+
+      {product.length === 0 && (
+        <div className="col-12 text-center mt-4">
+          <h5 className="text-muted">Loading🏃🏃🏃</h5>
+        </div>
+      )}
     </div>
+
+        {/* Pagination Buttons */}
+        {viewBtns > 0 && (
+          <div className="mt-4 d-flex flex-wrap gap-2 justify-content-center">
+            {Array.from({ length: viewBtns }, (_, i) => i + 1).map((btn) => (
+              <button
+                key={btn}
+                className={`btn ${
+                  page === btn ? "btn-primary" : "btn-outline-primary"
+                }`}
+                onClick={() => setpage(btn)}
+              >
+                {btn}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* small custom hover css idea (you can put in your css file)
+          .hover-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s; }
+      */}
+    </>
   );
 };
 
 export default ProductData;
-
-// import axios from "axios";
-// import { useEffect, useState } from "react";
-
-// const ProductData = () => {
-//   const [item, setData] = useState([]);
-//   const [currentPage, setCurrentPage] = useState(1);
-//   const itemsPerPage = 6; // how many products per page
-
-//   useEffect(() => {
-//     async function getData() {
-//       let { data } = await axios.get("https://dummyjson.com/products");
-//       setData(data.products);
-//     }
-//     getData();
-//   }, []);
-
-//   // 1️⃣ Calculate current page data
-//   const indexOfLastItem = currentPage * itemsPerPage;
-//   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-//   const currentItems = item.slice(indexOfFirstItem, indexOfLastItem);
-
-//   // 2️⃣ Total pages
-//   const totalPages = Math.ceil(item.length / itemsPerPage);
-
-//   // 3️⃣ Handlers
-//   const goToPage = (pageNumber) => {
-//     setCurrentPage(pageNumber);
-//   };
-
-//   const goToNext = () => {
-//     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
-//   };
-
-//   const goToPrev = () => {
-//     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
-//   };
-
-//   return (
-//     <div className="container mt-4">
-//       <div className="row">
-//         {currentItems.map((pr) => (
-//           <div key={pr.id} className="col-md-4 mb-3">
-//             <div className="card shadow-lg h-100">
-//               <img
-//                 src={pr.thumbnail}
-//                 alt={pr.title}
-//                 className="card-img-top"
-//                 style={{ height: "200px", objectFit: "cover" }}
-//               />
-//               <div className="card-body">
-//                 <h5 className="card-title">{pr.title}</h5>
-//                 <p className="card-text text-muted">Price: ${pr.price}</p>
-//                 <button className="btn btn-primary w-100">Buy Now</button>
-//               </div>
-//             </div>
-//           </div>
-//         ))}
-//       </div>
-
-//       {/* 4️⃣ Pagination Controls */}
-//       <nav className="mt-4">
-//         <ul className="pagination justify-content-center">
-
-//           {/* Previous Button */}
-//           <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-//             <button className="page-link" onClick={goToPrev}>
-//               Previous
-//             </button>
-//           </li>
-
-//           {/* Page Numbers */}
-//           {Array.from({ length: totalPages }, (_, index) => (
-//             <li
-//               key={index + 1}
-//               className={`page-item ${
-//                 currentPage === index + 1 ? "active" : ""
-//               }`}
-//             >
-//               <button
-//                 className="page-link"
-//                 onClick={() => goToPage(index + 1)}
-//               >
-//                 {index + 1}
-//               </button>
-//             </li>
-//           ))}
-
-//           {/* Next Button */}
-//           <li
-//             className={`page-item ${
-//               currentPage === totalPages ? "disabled" : ""
-//             }`}
-//           >
-//             <button className="page-link" onClick={goToNext}>
-//               Next
-//             </button>
-//           </li>
-//         </ul>
-//       </nav>
-//     </div>
-//   );
-// };
-
-// export default ProductData;
