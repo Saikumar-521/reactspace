@@ -2,6 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Loader } from "./Loader";
 
 
 const ProductData = () => {
@@ -169,7 +170,7 @@ const ProductData = () => {
 
       {product.length === 0 && (
         <div className="col-12 text-center mt-4">
-          <h5 className="text-muted">Loading🏃🏃🏃</h5>
+          <h5 className="text-muted"><Loader/></h5>
         </div>
       )}
     </div>

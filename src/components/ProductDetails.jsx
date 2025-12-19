@@ -2,21 +2,40 @@ import axios from "axios"
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Loader } from "./Loader";
+import { useDispatch } from "react-redux";
+import { ADDCART } from "../features/cart/CartSlice";
+import { ToastMSG } from "../features/cart/ToastMSG";
 
 export const ProductDetails = () => {
   let { id } = useParams()
   const [product, setproduct] = useState({})
+  
+  // let select=useSelector(state=>state.cart)
+  const [toast, settoast] = useState("");
+  let dispatch=useDispatch()
 
   useEffect(() => {
     async function getAPI() {
       let { data } = await axios.get(`https://dummyjson.com/products/${id}`);
-      console.log(data);
+      // console.log(data);
       setproduct(data)
     }
     getAPI()
   }, [id])
 
   if (!product.title) return <h2 className="text-center mt-5"><Loader/></h2>;
+
+  function handleCart(){
+
+
+    settoast(`${product.title} added to cart`)
+        dispatch(ADDCART({ ...product, quantity: 1 }))
+
+    setTimeout(() => {
+      settoast("")
+    }, 3000);
+
+  }
 
   return (
     <>
@@ -74,7 +93,7 @@ export const ProductDetails = () => {
 
             {/* Buttons */}
             <div className="mt-4 d-flex gap-3">
-              <button className="btn btn-dark w-50">Add to Cart 🛒</button>
+              <button className="btn btn-dark w-50" onClick={handleCart} >Add to Cart 🛒</button>
               <button className="btn btn-success w-50">Buy Now ⚡</button>
             </div>
 
@@ -84,6 +103,7 @@ export const ProductDetails = () => {
           </div>
         </div>
       </div>
+      <ToastMSG  name={toast}/>
     </>
   );
 };
